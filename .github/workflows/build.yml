@@ -1,4 +1,4 @@
-name: Build OverlayFS Exploit
+name: Build CVE-2026-98937 PoC
 on: [push, workflow_dispatch]
 
 jobs:
@@ -7,27 +7,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+    - name: Install cross-compiler
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
 
     - name: Download PoC
       run: |
-        git clone https://github.com/sxlmnwb/CVE-2023-0386.git
+        git clone https://github.com/woshigenm/CVE-2026-98937.git
+        cd CVE-2026-98937
 
-    - name: Compile Statically in ARM64
+    - name: Compile PoC
       run: |
-        docker run --rm --platform linux/arm64 -v $(pwd):/src -w /src arm64v8/ubuntu:22.04 /bin/bash -c "
-          apt-get update
-          apt-get install -y build-essential libfuse-dev libcap-dev
-          cd CVE-2023-0386
-          gcc -o fuse fuse.c -D_FILE_OFFSET_BITS=64 -static -pthread -lfuse -ldl
-          gcc -o exp exp.c -lcap -static
-        "
+        cd CVE-2026-98937
+        aarch64-linux-gnu-gcc -static -O2 -o poc src/poc.c
 
-    - name: Upload Exploit
+    - name: Upload PoC
       uses: actions/upload-artifact@v4
       with:
-        name: overlayfs-exploit
-        path: |
-          CVE-2023-0386/fuse
-          CVE-2023-0386/exp
+        name: cve-2026-98937-poc
+        path: CVE-2026-98937/poc
