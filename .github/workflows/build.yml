@@ -19,8 +19,8 @@ jobs:
     - name: Patch Spray Count
       run: |
         cd CVE-2023-20938-poc
-        # מחליף את 36 ב-512 כדי לרסס הרבה יותר זיכרון
-        sed -i 's/#define XCACHE_SLABS 36/#define XCACHE_SLABS 512/' poc_cf.c
+        # משנים את 36 ל-128 (פי 3.5 יותר, אבל לא אגרסיבי מדי)
+        sed -i 's/#define XCACHE_SLABS 36/#define XCACHE_SLABS 128/' poc_cf.c
 
     - name: Compile PoC
       run: |
