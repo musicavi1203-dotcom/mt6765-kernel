@@ -20,7 +20,6 @@ jobs:
     - name: Patch Version Check
       run: |
         cd ghostlock-app/tools/extract_rs
-        # מחליף את הטקסט שבתוך המחרוזת כדי שלא יקרוס
         sed -i 's/needs a 5.x\/6.x release, got {release_text}/bypassed/' src/main.rs
 
     - name: Build Binary
@@ -32,4 +31,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: extract_rs-binary
-        path: ghostlock-app/tools/extract_rs/target/aarch64-unknown-linux-musl/release/extract_rs
+        path: ghostlock-app/tools/extract_rs/target/aarch64-unknown-linux-musl/release/ghostlock-extract
