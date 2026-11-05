@@ -25,6 +25,16 @@ jobs:
         git clone https://github.com/Again1996-bit/CVE-2026-98260-GhostKey.git
         cd CVE-2026-98260-GhostKey
 
+    - name: Generate Keystore & Set Passwords
+      run: |
+        cd CVE-2026-98260-GhostKey
+        mkdir -p app/keystore
+        keytool -genkeypair -v -keystore app/keystore/release.keystore -alias cve98260 -keyalg RSA -keysize 2048 -validity 10000 -storepass ghostkey123 -keypass ghostkey123 -dname "CN=GhostKey, OU=Security, O=Research, L=Unknown, S=Unknown, C=US"
+        
+        # Inject passwords into local.properties
+        echo "CVE98260_STORE_PASSWORD=ghostkey123" >> local.properties
+        echo "CVE98260_KEY_PASSWORD=ghostkey123" >> local.properties
+
     - name: Build APK
       run: |
         cd CVE-2026-98260-GhostKey
