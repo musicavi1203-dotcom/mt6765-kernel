@@ -8,19 +8,21 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v4
+      uses: docker/setup-qemu-action@v3
 
     - name: Download PoC
       run: |
         git clone https://github.com/sxlmnwb/CVE-2023-0386.git
 
-    - name: Compile Exploit in ARM64 Container
+    - name: Compile Statically in ARM64
       run: |
         docker run --rm --platform linux/arm64 -v $(pwd):/src -w /src arm64v8/ubuntu:22.04 /bin/bash -c "
           apt-get update
           apt-get install -y build-essential libfuse-dev libcap-dev
           cd CVE-2023-0386
-          make all
+          gcc -o fuse fuse.c -D_FILE_OFFSET_BITS=64 -static -pthread -lfuse -ldl
+          gcc -o exp exp.c -lcap -static
+          gcc -o gc gc.c -static
         "
 
     - name: Upload Exploit
