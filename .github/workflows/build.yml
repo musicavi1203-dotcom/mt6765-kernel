@@ -1,4 +1,4 @@
-name: Build Kernel vmlinux
+name: Build Kernel Image
 on: [push, workflow_dispatch]
 
 jobs:
@@ -23,13 +23,13 @@ jobs:
         cd linux-4.19.191
         make ARCH=arm64 olddefconfig
 
-    - name: Build vmlinux
+    - name: Build Image
       run: |
         cd linux-4.19.191
-        make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) vmlinux
+        make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image
 
-    - name: Upload vmlinux
+    - name: Upload Image
       uses: actions/upload-artifact@v4
       with:
-        name: vmlinux-file
-        path: linux-4.19.191/vmlinux
+        name: kernel-image-file
+        path: linux-4.19.191/arch/arm64/boot/Image
