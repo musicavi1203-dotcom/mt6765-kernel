@@ -20,10 +20,10 @@ jobs:
     - name: Compile PoC
       run: |
         cd CVE-2023-20938-poc
-        aarch64-linux-gnu-gcc -static -O2 -o exploit exploit.c
+        aarch64-linux-gnu-gcc -static -Wall -Wextra -o poc_cf poc_cf.c -lpthread
 
     - name: Upload Exploit
       uses: actions/upload-artifact@v4
       with:
         name: cve-2023-20938-exploit
-        path: CVE-2023-20938-poc/exploit
+        path: CVE-2023-20938-poc/poc_cf
