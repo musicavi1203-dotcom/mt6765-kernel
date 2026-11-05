@@ -1,4 +1,4 @@
-name: Build CVE-2023-20938 PoC
+name: Build CVE-2023-20938 ARM64 PoC
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,22 +14,16 @@ jobs:
 
     - name: Download PoC
       run: |
-        git clone https://github.com/byt3quester/CVE-2023-20938-poc.git
-        cd CVE-2023-20938-poc
-
-    - name: Patch Spray Count
-      run: |
-        cd CVE-2023-20938-poc
-        # מחליף את המספר 2304 ב-20000 בכל הקובץ
-        sed -i 's/2304/20000/g' poc_cf.c
+        git clone https://github.com/anansi2safe/CVE-2023-20938.git
+        cd CVE-2023-20938
 
     - name: Compile PoC
       run: |
-        cd CVE-2023-20938-poc
-        aarch64-linux-gnu-gcc -static -Wall -Wextra -o poc_cf poc_cf.c -lpthread
+        cd CVE-2023-20938
+        aarch64-linux-gnu-gcc -static -O2 -o poc poc.c -lpthread
 
     - name: Upload Exploit
       uses: actions/upload-artifact@v4
       with:
-        name: cve-2023-20938-exploit
-        path: CVE-2023-20938-poc/poc_cf
+        name: cve-2023-20938-arm64
+        path: CVE-2023-20938/poc
