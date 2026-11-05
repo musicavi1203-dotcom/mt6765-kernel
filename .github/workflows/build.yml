@@ -1,4 +1,4 @@
-name: Build CVE-2023-20938 ARM64 PoC
+name: Build CVE-2023-20938 PoC
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,16 +14,21 @@ jobs:
 
     - name: Download PoC
       run: |
-        git clone https://github.com/anansi2safe/CVE-2023-20938.git
-        cd CVE-2023-20938
+        git clone https://github.com/byt3quester/CVE-2023-20938-poc.git
+
+    - name: Patch Spray Count
+      run: |
+        cd CVE-2023-20938-poc
+        # מחליף את 36 ב-512 כדי לרסס הרבה יותר זיכרון
+        sed -i 's/#define XCACHE_SLABS 36/#define XCACHE_SLABS 512/' poc_cf.c
 
     - name: Compile PoC
       run: |
-        cd CVE-2023-20938
-        aarch64-linux-gnu-gcc -static -O2 -o poc *.c -lpthread
+        cd CVE-2023-20938-poc
+        aarch64-linux-gnu-gcc -static -O2 -o poc_cf poc_cf.c -lpthread
 
     - name: Upload Exploit
       uses: actions/upload-artifact@v4
       with:
-        name: cve-2023-20938-arm64
-        path: CVE-2023-20938/poc
+        name: cve-2023-20938-exploit
+        path: CVE-2023-20938-poc/poc_cf
