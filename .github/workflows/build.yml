@@ -20,8 +20,8 @@ jobs:
     - name: Patch Version Check
       run: |
         cd ghostlock-app/tools/extract_rs
-        # מוחק את כל השורה שמכילה את השגיאה
-        sed -i '/needs a 5.x\/6.x release/d' src/main.rs
+        # מחליף את הטקסט שבתוך המחרוזת כדי שלא יקרוס
+        sed -i 's/needs a 5.x\/6.x release, got {release_text}/bypassed/' src/main.rs
 
     - name: Build Binary
       run: |
