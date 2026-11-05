@@ -1,4 +1,4 @@
-name: Build CVE-2023-20938 PoC
+name: Build CVE-2026-98937 PoC
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,21 +14,16 @@ jobs:
 
     - name: Download PoC
       run: |
-        git clone https://github.com/byt3quester/CVE-2023-20938-poc.git
-
-    - name: Patch Spray Count
-      run: |
-        cd CVE-2023-20938-poc
-        # משנים את 36 ל-128 (פי 3.5 יותר, אבל לא אגרסיבי מדי)
-        sed -i 's/#define XCACHE_SLABS 36/#define XCACHE_SLABS 128/' poc_cf.c
+        git clone https://github.com/woshigenm/CVE-2026-98937.git
+        cd CVE-2026-98937
 
     - name: Compile PoC
       run: |
-        cd CVE-2023-20938-poc
-        aarch64-linux-gnu-gcc -static -O2 -o poc_cf poc_cf.c -lpthread
+        cd CVE-2026-98937
+        aarch64-linux-gnu-gcc -static -O2 -o poc src/poc.c -lpthread
 
-    - name: Upload Exploit
+    - name: Upload PoC
       uses: actions/upload-artifact@v4
       with:
-        name: cve-2023-20938-exploit
-        path: CVE-2023-20938-poc/poc_cf
+        name: cve-2026-98937-poc
+        path: CVE-2026-98937/poc
