@@ -17,6 +17,12 @@ jobs:
         git clone https://github.com/byt3quester/CVE-2023-20938-poc.git
         cd CVE-2023-20938-poc
 
+    - name: Patch Spray Count
+      run: |
+        cd CVE-2023-20938-poc
+        # מחליף את המספר 2304 ב-20000 בכל הקובץ
+        sed -i 's/2304/20000/g' poc_cf.c
+
     - name: Compile PoC
       run: |
         cd CVE-2023-20938-poc
