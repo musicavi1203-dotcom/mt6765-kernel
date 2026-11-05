@@ -7,13 +7,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v4
+
     - name: Download PoC
       run: |
         git clone https://github.com/sxlmnwb/CVE-2023-0386.git
 
     - name: Compile Exploit in ARM64 Container
       run: |
-        docker run --rm -v $(pwd):/src -w /src arm64v8/ubuntu:22.04 /bin/bash -c "
+        docker run --rm --platform linux/arm64 -v $(pwd):/src -w /src arm64v8/ubuntu:22.04 /bin/bash -c "
           apt-get update
           apt-get install -y build-essential libfuse-dev libcap-dev
           cd CVE-2023-0386
