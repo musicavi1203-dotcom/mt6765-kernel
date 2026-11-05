@@ -1,4 +1,4 @@
-name: Build Patched GhostLock
+name: Build extract_rs for Android
 on: [push, workflow_dispatch]
 
 jobs:
@@ -7,56 +7,32 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-unknown-linux-musl
+
+    - name: Install musl tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu patchelf
+        sudo apt-get install -y musl-tools
 
-    - name: Create Syscall Hook
+    - name: Clone GhostLock Repo
       run: |
-        cat << 'EOF' > hook.c
-        #define _GNU_SOURCE
-        #include <dlfcn.h>
-        #include <stdarg.h>
-        #include <unistd.h>
-        #include <sys/syscall.h>
-        #include <linux/perf_event.h>
+        git clone https://github.com/YuKongA/ghostlock-app.git
 
-        long syscall(long number, ...) {
-            va_list args;
-            va_start(args, number);
-            long a1 = va_arg(args, long);
-            long a2 = va_arg(args, long);
-            long a3 = va_arg(args, long);
-            long a4 = va_arg(args, long);
-            long a5 = va_arg(args, long);
-            long a6 = va_arg(args, long);
-            va_end(args);
-
-            if (number == __NR_perf_event_open) {
-                struct perf_event_attr *hw_event = (struct perf_event_attr *)a1;
-                if (hw_event) {
-                    hw_event->exclude_kernel = 1;
-                }
-            }
-
-            long (*real_syscall)(long, ...) = dlsym(RTLD_NEXT, "syscall");
-            return real_syscall(number, a1, a2, a3, a4, a5, a6);
-        }
-        EOF
-
-    - name: Compile Hook
+    - name: Patch Version Check
       run: |
-        aarch64-linux-gnu-gcc -shared -fPIC -o hook.so hook.c -ldl
+        cd ghostlock-app/tools/extract_rs
+        sed -i '611s/^/\/\//' src/main.rs
 
-    - name: Patch GhostLock
+    - name: Build Binary
       run: |
-        patchelf --add-needed /data/local/tmp/hook.so ghostlock
+        cd ghostlock-app/tools/extract_rs
+        cargo build --release --target aarch64-unknown-linux-musl
 
-    - name: Upload Patched Binary
+    - name: Upload Binary
       uses: actions/upload-artifact@v4
       with:
-        name: patched-ghostlock
-        path: |
-          ghostlock
-          hook.so
+        name: extract_rs-binary
+        path: ghostlock-app/tools/extract_rs/target/aarch64-unknown-linux-musl/release/extract_rs
