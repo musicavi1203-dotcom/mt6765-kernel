@@ -1,4 +1,4 @@
-name: Build CVE-2026-98937 PoC
+name: Build Perf Bypass Hook
 on: [push, workflow_dispatch]
 
 jobs:
@@ -12,18 +12,28 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gcc-aarch64-linux-gnu
 
-    - name: Download PoC
+    - name: Create Hook Source
       run: |
-        git clone https://github.com/woshigenm/CVE-2026-98937.git
-        cd CVE-2026-98937
+        cat << 'EOF' > hook.c
+        #define _GNU_SOURCE
+        #include <dlfcn.h>
+        #include <linux/perf_event.h>
+        #include <sys/syscall.h>
+        #include <unistd.h>
 
-    - name: Compile PoC
+        long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags) {
+            // Force exclude_kernel = 1 to bypass perf_event_paranoid
+            hw_event->exclude_kernel = 1;
+            return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
+        }
+        EOF
+
+    - name: Compile Hook
       run: |
-        cd CVE-2026-98937
-        aarch64-linux-gnu-gcc -static -O2 -o poc src/poc.c -lpthread
+        aarch64-linux-gnu-gcc -shared -fPIC -o hook.so hook.c -ldl
 
-    - name: Upload PoC
+    - name: Upload Hook
       uses: actions/upload-artifact@v4
       with:
-        name: cve-2026-98937-poc
-        path: CVE-2026-98937/poc
+        name: perf-bypass-hook
+        path: hook.so
