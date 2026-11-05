@@ -7,26 +7,24 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu make libfuse-dev
-
     - name: Download PoC
       run: |
         git clone https://github.com/sxlmnwb/CVE-2023-0386.git
-        cd CVE-2023-0386
 
-    - name: Compile Exploit
+    - name: Compile Exploit in ARM64 Container
       run: |
-        cd CVE-2023-0386
-        make all CC=aarch64-linux-gnu-gcc
+        docker run --rm -v $(pwd):/src -w /src arm64v8/ubuntu:22.04 /bin/bash -c "
+          apt-get update
+          apt-get install -y build-essential libfuse-dev libcap-dev
+          cd CVE-2023-0386
+          make all
+        "
 
     - name: Upload Exploit
       uses: actions/upload-artifact@v4
       with:
         name: overlayfs-exploit
         path: |
-          CVE-2023-0386/exp
           CVE-2023-0386/fuse
+          CVE-2023-0386/exp
           CVE-2023-0386/gc
