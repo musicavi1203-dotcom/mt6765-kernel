@@ -12,10 +12,11 @@ jobs:
       with:
         targets: aarch64-unknown-linux-musl
 
-    - name: Install musl tools
+    - name: Install musl cross toolchain
       run: |
-        sudo apt-get update
-        sudo apt-get install -y musl-tools
+        wget https://musl.cc/aarch64-linux-musl-cross.tgz
+        tar -xzf aarch64-linux-musl-cross.tgz
+        echo "$PWD/aarch64-linux-musl-cross/bin" >> $GITHUB_PATH
 
     - name: Clone GhostLock Repo
       run: |
@@ -30,6 +31,8 @@ jobs:
       run: |
         cd ghostlock-app/tools/extract_rs
         cargo build --release --target aarch64-unknown-linux-musl
+      env:
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
 
     - name: Upload Binary
       uses: actions/upload-artifact@v4
