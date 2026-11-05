@@ -22,7 +22,6 @@ jobs:
           cd CVE-2023-0386
           gcc -o fuse fuse.c -D_FILE_OFFSET_BITS=64 -static -pthread -lfuse -ldl
           gcc -o exp exp.c -lcap -static
-          gcc -o gc gc.c -static
         "
 
     - name: Upload Exploit
@@ -32,4 +31,3 @@ jobs:
         path: |
           CVE-2023-0386/fuse
           CVE-2023-0386/exp
-          CVE-2023-0386/gc
