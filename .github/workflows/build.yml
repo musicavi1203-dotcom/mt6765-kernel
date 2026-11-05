@@ -1,4 +1,4 @@
-name: Build GhostKey APK
+name: Build Patched GhostLock
 on: [push, workflow_dispatch]
 
 jobs:
@@ -7,42 +7,100 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Install Android SDK packages
+    - name: Install dependencies
       run: |
-        yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-          'platforms;android-35' \
-          'build-tools;35.0.0' \
-          'ndk;26.1.10909125'
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu patchelf wget
 
-    - name: Download GhostKey
+    - name: Download GhostLock
       run: |
-        git clone https://github.com/Again1996-bit/CVE-2026-98260-GhostKey.git
-        cd CVE-2026-98260-GhostKey
+        wget https://github.com/yuuki-san/ghostlock-app/releases/download/v1.0/ghostlock -O ghostlock
 
-    - name: Generate Keystore & Set Passwords
+    - name: Create Syscall Hook
       run: |
-        cd CVE-2026-98260-GhostKey
-        mkdir -p app/keystore
-        keytool -genkeypair -v -keystore app/keystore/release.keystore -alias cve98260 -keyalg RSA -keysize 2048 -validity 10000 -storepass ghostkey123 -keypass ghostkey123 -dname "CN=GhostKey, OU=Security, O=Research, L=Unknown, S=Unknown, C=US"
-        
-        # Inject passwords into local.properties
-        echo "CVE98260_STORE_PASSWORD=ghostkey123" >> local.properties
-        echo "CVE98260_KEY_PASSWORD=ghostkey123" >> local.properties
+        cat << 'EOF' > hook.c
+        #define _GNU_SOURCE
+        #include <dlfcn.h>
+        #include <stdarg.h>
+        #include <unistd.h>
+        #include <sys/syscall.h>
 
-    - name: Build APK
+        long syscall(long number, ...) {
+            va_list args;
+            va_start(args, number);
+            long a1 = va_arg(args, long);
+            long a2 = va_arg(args, long);
+            long a3 = va_arg(args, long);
+            long a4 = va_arg(args, long);
+            long a5 = va_arg(args, long);
+            long a6 = va_arg(args, long);
+            va_end(args);
+
+            if (number == __NR_perf_event_open) {
+                // a1 is hw_event (pointer to struct perf_event_attr)
+                // We change exclude_kernel to 1 by writing to the struct offset
+                // Offset of exclude_kernel in perf_event_attr is typically 0x28 or similar
+                // But we can just cast it to int* and write.
+                // Actually, let's use a simpler approach: just write to the memory.
+                // For struct perf_event_attr, exclude_kernel is a bitfield.
+                // Let's just force it to 1 by writing to the struct.
+                // Since we don't have the full struct definition, we'll use a byte offset.
+                // For arm64, exclude_kernel is at offset 0x28 (bit 5).
+                // It's safer to include the header.
+                // #include <linux/perf_event.h>
+                // struct perf_event_attr *hw_event = (struct perf_event_attr *)a1;
+                // hw_event->exclude_kernel = 1;
+            }
+
+            long (*real_syscall)(long, ...) = dlsym(RTLD_NEXT, "syscall");
+            return real_syscall(number, a1, a2, a3, a4, a5, a6);
+        }
+        EOF
+        # אנחנו צריכים את הקובץ הזה עם הספרייה של אנדרואיד
+        # בוא נשתמש בגרסה פשוטה יותר שפשוט מדפיסה
+        cat << 'EOF' > hook.c
+        #define _GNU_SOURCE
+        #include <dlfcn.h>
+        #include <stdarg.h>
+        #include <unistd.h>
+        #include <sys/syscall.h>
+        #include <linux/perf_event.h>
+
+        long syscall(long number, ...) {
+            va_list args;
+            va_start(args, number);
+            long a1 = va_arg(args, long);
+            long a2 = va_arg(args, long);
+            long a3 = va_arg(args, long);
+            long a4 = va_arg(args, long);
+            long a5 = va_arg(args, long);
+            long a6 = va_arg(args, long);
+            va_end(args);
+
+            if (number == __NR_perf_event_open) {
+                struct perf_event_attr *hw_event = (struct perf_event_attr *)a1;
+                if (hw_event) {
+                    hw_event->exclude_kernel = 1;
+                }
+            }
+
+            long (*real_syscall)(long, ...) = dlsym(RTLD_NEXT, "syscall");
+            return real_syscall(number, a1, a2, a3, a4, a5, a6);
+        }
+        EOF
+
+    - name: Compile Hook
       run: |
-        cd CVE-2026-98260-GhostKey
-        chmod +x gradlew
-        ./gradlew assembleRelease
+        aarch64-linux-gnu-gcc -shared -fPIC -o hook.so hook.c -ldl
 
-    - name: Upload APK
+    - name: Patch GhostLock
+      run: |
+        patchelf --add-needed /data/local/tmp/hook.so ghostlock
+
+    - name: Upload Patched Binary
       uses: actions/upload-artifact@v4
       with:
-        name: GhostKey-apk
-        path: CVE-2026-98260-GhostKey/app/build/outputs/apk/release/*.apk
+        name: patched-ghostlock
+        path: |
+          ghostlock
+          hook.so
