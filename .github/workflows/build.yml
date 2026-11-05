@@ -20,7 +20,7 @@ jobs:
     - name: Compile PoC
       run: |
         cd CVE-2023-20938
-        aarch64-linux-gnu-gcc -static -O2 -o poc poc.c -lpthread
+        aarch64-linux-gnu-gcc -static -O2 -o poc *.c -lpthread
 
     - name: Upload Exploit
       uses: actions/upload-artifact@v4
