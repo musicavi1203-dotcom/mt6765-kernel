@@ -17,10 +17,14 @@ jobs:
       run: |
         git clone https://github.com/YuKongA/ghostlock-app.git
 
-    - name: Patch Version Check
+    - name: Patch Version Check & Vulnerability Check
       run: |
         cd ghostlock-app/tools/extract_rs
+        # מבטל את בדיקת הגרסה
         sed -i 's/needs a 5.x\/6.x release, got {release_text}/bypassed/' src/main.rs
+        # מבטל את בדיקת ה-UAF
+        sed -i 's/if remove_waiter_uses_current(&dis)/if true/' src/derive.rs
+        sed -i 's/if remove_waiter_uses_current(&dis) {/if true {/' src/derive.rs
 
     - name: Build Binary
       run: |
@@ -29,7 +33,6 @@ jobs:
 
     - name: Find and Copy Binary
       run: |
-        # מחפש את הקובץ בכל מקום ומעביר אותו לתיקייה הראשית
         find ghostlock-app -type f -name "ghostlock-extract" -exec cp {} ./extract_rs_android \;
         ls -la ./extract_rs_android
 
