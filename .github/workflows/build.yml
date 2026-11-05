@@ -10,54 +10,10 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu patchelf wget
-
-    - name: Download GhostLock
-      run: |
-        wget https://github.com/yuuki-san/ghostlock-app/releases/download/v1.0/ghostlock -O ghostlock
+        sudo apt-get install -y gcc-aarch64-linux-gnu patchelf
 
     - name: Create Syscall Hook
       run: |
-        cat << 'EOF' > hook.c
-        #define _GNU_SOURCE
-        #include <dlfcn.h>
-        #include <stdarg.h>
-        #include <unistd.h>
-        #include <sys/syscall.h>
-
-        long syscall(long number, ...) {
-            va_list args;
-            va_start(args, number);
-            long a1 = va_arg(args, long);
-            long a2 = va_arg(args, long);
-            long a3 = va_arg(args, long);
-            long a4 = va_arg(args, long);
-            long a5 = va_arg(args, long);
-            long a6 = va_arg(args, long);
-            va_end(args);
-
-            if (number == __NR_perf_event_open) {
-                // a1 is hw_event (pointer to struct perf_event_attr)
-                // We change exclude_kernel to 1 by writing to the struct offset
-                // Offset of exclude_kernel in perf_event_attr is typically 0x28 or similar
-                // But we can just cast it to int* and write.
-                // Actually, let's use a simpler approach: just write to the memory.
-                // For struct perf_event_attr, exclude_kernel is a bitfield.
-                // Let's just force it to 1 by writing to the struct.
-                // Since we don't have the full struct definition, we'll use a byte offset.
-                // For arm64, exclude_kernel is at offset 0x28 (bit 5).
-                // It's safer to include the header.
-                // #include <linux/perf_event.h>
-                // struct perf_event_attr *hw_event = (struct perf_event_attr *)a1;
-                // hw_event->exclude_kernel = 1;
-            }
-
-            long (*real_syscall)(long, ...) = dlsym(RTLD_NEXT, "syscall");
-            return real_syscall(number, a1, a2, a3, a4, a5, a6);
-        }
-        EOF
-        # אנחנו צריכים את הקובץ הזה עם הספרייה של אנדרואיד
-        # בוא נשתמש בגרסה פשוטה יותר שפשוט מדפיסה
         cat << 'EOF' > hook.c
         #define _GNU_SOURCE
         #include <dlfcn.h>
